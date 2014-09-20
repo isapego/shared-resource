@@ -1,4 +1,4 @@
 shared-resource
 ===============
 
-Simple impleamentation of the Rust-style Mutexes for modern C++
+Simple implementation of the Rust-style Mutexes for modern C++

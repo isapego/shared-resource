@@ -1,0 +1,6 @@
+#ifndef SHARED_RESOURCE_H
+#define SHARED_RESOURCE_H
+
+
+
+#endif //SHARED_RESOURCE_H
