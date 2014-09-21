@@ -4,6 +4,8 @@ CppApplication {
     type: "application"
     name : "shared-resource-tests"
 
+    cpp.cxxFlags : "-std=c++11";
+
     cpp.includePaths: [
         "include"
     ]
