@@ -41,3 +41,14 @@ BOOST_AUTO_TEST_CASE(Locking_with_accessor)
     auto shared_int_accessor = shared_int.lock();
 }
 
+
+BOOST_AUTO_TEST_CASE(Accessor_isValid)
+{
+    SharedResource<int> shared_int(0);
+    auto shared_int_accessor = shared_int.lock();
+    BOOST_CHECK(shared_int_accessor.isValid());
+    auto shared_int_accessor_new(std::move(shared_int_accessor));
+    BOOST_CHECK(!shared_int_accessor.isValid());
+    BOOST_CHECK(shared_int_accessor_new.isValid());
+}
+
