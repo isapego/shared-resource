@@ -16,7 +16,7 @@ BOOST_AUTO_TEST_CASE(Construction_with_argument)
 }
 
 
-BOOST_AUTO_TEST_CASE(Construction_no_default)
+BOOST_AUTO_TEST_CASE(Construction_no_default_constructor)
 {
     struct TestClass
     {
@@ -26,3 +26,11 @@ BOOST_AUTO_TEST_CASE(Construction_no_default)
 
     SharedResource<TestClass> stc2(5);
 }
+
+
+BOOST_AUTO_TEST_CASE(Basic_Locking)
+{
+    SharedResource<int> shared_int(0);
+    shared_int.lock();
+}
+
