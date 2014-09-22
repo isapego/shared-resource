@@ -43,6 +43,11 @@ public:
             a.m_shared_resource = nullptr;
         }
 
+        bool isValid() const noexcept
+        {
+            return m_shared_resource != nullptr;
+        }
+
     private:
         Accessor(SharedResource<T> *resource) : m_shared_resource(resource)
         {
