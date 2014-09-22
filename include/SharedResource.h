@@ -22,21 +22,39 @@ public:
     public:
         ~Accessor()
         {
-            m_shared_resource.m_mutex.unlock();
+            if (m_shared_resource)
+            {
+                m_shared_resource->m_mutex.unlock();
+            }
+        }
+
+        Accessor(const Accessor&) = delete;
+        Accessor& operator=(const Accessor&) = delete;
+
+        Accessor(Accessor&& a) :
+            m_shared_resource(a.m_shared_resource)
+        {
+            a.m_shared_resource = nullptr;
+        }
+
+        Accessor& operator=(Accessor&& a)
+        {
+            m_shared_resource = a.m_shared_resource;
+            a.m_shared_resource = nullptr;
         }
 
     private:
-        Accessor(SharedResource<T> &resource) : m_shared_resource(resource)
+        Accessor(SharedResource<T> *resource) : m_shared_resource(resource)
         {
-            m_shared_resource.m_mutex.lock();
+            m_shared_resource->m_mutex.lock();
         }
 
-        SharedResource<T> &m_shared_resource;
+        SharedResource<T> *m_shared_resource;
     };
 
     Accessor lock()
     {
-        return Accessor(*this);
+        return Accessor(this);
     }
 
 private:

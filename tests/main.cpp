@@ -34,3 +34,10 @@ BOOST_AUTO_TEST_CASE(Basic_Locking)
     shared_int.lock();
 }
 
+
+BOOST_AUTO_TEST_CASE(Locking_with_accessor)
+{
+    SharedResource<int> shared_int(0);
+    auto shared_int_accessor = shared_int.lock();
+}
+
