@@ -1,5 +1,6 @@
 #include <thread>
 #include <chrono>
+#include <condition_variable>
 
 #define BOOST_TEST_MAIN
 #include <boost/test/unit_test.hpp>
@@ -85,7 +86,7 @@ BOOST_AUTO_TEST_CASE(Acessor_dereferencing_2)
 }
 
 
-BOOST_AUTO_TEST_CASE(Concurrency_test)
+BOOST_AUTO_TEST_CASE(Concurrency_basic)
 {
     SharedResource<int> shared_int(0);
 
@@ -107,4 +108,43 @@ BOOST_AUTO_TEST_CASE(Concurrency_test)
     test_thread.join();
     auto shared_int_accessor = shared_int.lock();
     BOOST_CHECK_EQUAL(7, *shared_int_accessor);
+}
+
+
+BOOST_AUTO_TEST_CASE(Concurrency_condvars)
+{
+    SharedResource<int> shared_int(0);
+    std::condition_variable condvar;
+
+    std::thread test_thread([&shared_int, &condvar]()
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        auto shared_int_accessor = shared_int.lock();
+        *shared_int_accessor = 7;
+        condvar.wait(shared_int_accessor.get_lock());
+        *shared_int_accessor = 3;
+    });
+
+    {
+        auto shared_int_accessor = shared_int.lock();
+        BOOST_CHECK_EQUAL(0, *shared_int_accessor);
+        *shared_int_accessor = 5;
+        BOOST_CHECK_EQUAL(5, *shared_int_accessor);
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        BOOST_CHECK_EQUAL(5, *shared_int_accessor);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+
+    {
+        auto shared_int_accessor = shared_int.lock();
+        BOOST_CHECK_EQUAL(7, *shared_int_accessor);
+        condvar.notify_one();
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        BOOST_CHECK_EQUAL(7, *shared_int_accessor);
+    }
+
+    test_thread.join();
+    auto shared_int_accessor = shared_int.lock();
+    BOOST_CHECK_EQUAL(3, *shared_int_accessor);
 }

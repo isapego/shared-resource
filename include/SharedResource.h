@@ -20,18 +20,13 @@ public:
     {
         friend class SharedResource<T>;
     public:
-        ~Accessor()
-        {
-            if (m_shared_resource)
-            {
-                m_shared_resource->m_mutex.unlock();
-            }
-        }
+        ~Accessor() = default;
 
         Accessor(const Accessor&) = delete;
         Accessor& operator=(const Accessor&) = delete;
 
         Accessor(Accessor&& a) :
+            m_lock(std::move(a.m_lock)),
             m_shared_resource(a.m_shared_resource)
         {
             a.m_shared_resource = nullptr;
@@ -39,6 +34,7 @@ public:
 
         Accessor& operator=(Accessor&& a)
         {
+            m_lock = std::move(a.m_lock);
             m_shared_resource = a.m_shared_resource;
             a.m_shared_resource = nullptr;
         }
@@ -50,21 +46,28 @@ public:
 
         T* operator->()
         {
-            return &m_shared_resource->m_resource;
+            return m_shared_resource;
         }
 
         T& operator*()
         {
-            return m_shared_resource->m_resource;
+            return *m_shared_resource;
+        }
+
+        std::unique_lock<std::mutex>& get_lock() noexcept
+        {
+            return m_lock;
         }
 
     private:
-        Accessor(SharedResource<T> *resource) : m_shared_resource(resource)
+        Accessor(SharedResource<T> *resource) :
+            m_lock(resource->m_mutex),
+            m_shared_resource(&resource->m_resource)
         {
-            m_shared_resource->m_mutex.lock();
         }
 
-        SharedResource<T> *m_shared_resource;
+        std::unique_lock<std::mutex>    m_lock;
+        T                              *m_shared_resource;
     };
 
     Accessor lock()
