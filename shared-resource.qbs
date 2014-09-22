@@ -10,6 +10,10 @@ CppApplication {
         "include"
     ]
 
+    cpp.staticLibraries: [
+        "boost_unit_test_framework"
+    ]
+
     files : [
         "tests/main.cpp",
         "include/SharedResource.h"
