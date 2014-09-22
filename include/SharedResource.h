@@ -48,6 +48,16 @@ public:
             return m_shared_resource != nullptr;
         }
 
+        T* operator->()
+        {
+            return &m_shared_resource->m_resource;
+        }
+
+        T& operator*()
+        {
+            return m_shared_resource->m_resource;
+        }
+
     private:
         Accessor(SharedResource<T> *resource) : m_shared_resource(resource)
         {
