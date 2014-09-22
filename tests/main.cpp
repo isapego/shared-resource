@@ -1,7 +1,10 @@
-#include "SharedResource.h"
+#include <thread>
+#include <chrono>
 
 #define BOOST_TEST_MAIN
 #include <boost/test/unit_test.hpp>
+
+#include "SharedResource.h"
 
 
 BOOST_AUTO_TEST_CASE(Basic_construction)
@@ -81,3 +84,27 @@ BOOST_AUTO_TEST_CASE(Acessor_dereferencing_2)
     BOOST_CHECK_EQUAL(5, shared_int_accessor->get());
 }
 
+
+BOOST_AUTO_TEST_CASE(Concurrency_test)
+{
+    SharedResource<int> shared_int(0);
+
+    std::thread test_thread([&shared_int]()
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        auto shared_int_accessor = shared_int.lock();
+        *shared_int_accessor = 7;
+    });
+
+    {
+        auto shared_int_accessor = shared_int.lock();
+        BOOST_CHECK_EQUAL(0, *shared_int_accessor);
+        *shared_int_accessor = 5;
+        BOOST_CHECK_EQUAL(5, *shared_int_accessor);
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        BOOST_CHECK_EQUAL(5, *shared_int_accessor);
+    }
+    test_thread.join();
+    auto shared_int_accessor = shared_int.lock();
+    BOOST_CHECK_EQUAL(7, *shared_int_accessor);
+}
