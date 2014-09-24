@@ -8,7 +8,7 @@ class SharedResource
 {
 public:
     template<typename ...Args>
-    SharedResource(Args ...args) : m_resource(args...) { }
+    SharedResource(Args&& ...args) : m_resource(std::forward<Args>(args)...) { }
 
     ~SharedResource() = default;
     SharedResource(SharedResource&&) = delete;
