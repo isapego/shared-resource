@@ -34,9 +34,13 @@ public:
 
         Accessor& operator=(Accessor&& a)
         {
-            m_lock = std::move(a.m_lock);
-            m_shared_resource = a.m_shared_resource;
-            a.m_shared_resource = nullptr;
+            if (&a != this)
+            {
+                m_lock = std::move(a.m_lock);
+                m_shared_resource = a.m_shared_resource;
+                a.m_shared_resource = nullptr;
+            }
+            return *this;
         }
 
         bool isValid() const noexcept
