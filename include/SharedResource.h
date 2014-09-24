@@ -22,10 +22,7 @@ public:
     public:
         ~Accessor()
         {
-            if (m_shared_resource)
-            {
-                m_shared_resource->m_mutex.unlock();
-            }
+            release();
         }
 
         Accessor(const Accessor&) = delete;
@@ -39,8 +36,13 @@ public:
 
         Accessor& operator=(Accessor&& a)
         {
-            m_shared_resource = a.m_shared_resource;
-            a.m_shared_resource = nullptr;
+            if (&a != this)
+            {
+                release();
+                m_shared_resource = a.m_shared_resource;
+                a.m_shared_resource = nullptr;
+            }
+            return *this;
         }
 
         bool isValid() const noexcept
@@ -62,6 +64,14 @@ public:
         Accessor(SharedResource<T> *resource) : m_shared_resource(resource)
         {
             m_shared_resource->m_mutex.lock();
+        }
+
+        void release()
+        {
+            if (m_shared_resource != nullptr)
+            {
+                m_shared_resource->m_mutex.unlock();
+            }
         }
 
         SharedResource<T> *m_shared_resource;

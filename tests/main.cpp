@@ -85,7 +85,7 @@ BOOST_AUTO_TEST_CASE(Acessor_dereferencing_2)
 }
 
 
-BOOST_AUTO_TEST_CASE(Concurrency_test)
+BOOST_AUTO_TEST_CASE(Concurrency_basic)
 {
     SharedResource<int> shared_int(0);
 
@@ -107,4 +107,62 @@ BOOST_AUTO_TEST_CASE(Concurrency_test)
     test_thread.join();
     auto shared_int_accessor = shared_int.lock();
     BOOST_CHECK_EQUAL(7, *shared_int_accessor);
+}
+
+
+BOOST_AUTO_TEST_CASE(Acessor_move_construction)
+{
+    SharedResource<int> shared_int(42);
+    auto shared_int_accessor = shared_int.lock();
+    BOOST_REQUIRE(shared_int_accessor.isValid());
+    BOOST_CHECK_EQUAL(42, *shared_int_accessor);
+    auto shared_int_accessor_2(std::move(shared_int_accessor));
+    BOOST_CHECK(!shared_int_accessor.isValid());
+    BOOST_REQUIRE(shared_int_accessor_2.isValid());
+    BOOST_CHECK_EQUAL(42, *shared_int_accessor_2);
+}
+
+
+BOOST_AUTO_TEST_CASE(Acessor_move_assigment)
+{
+    SharedResource<int> shared_int(42);
+    auto shared_int_accessor = shared_int.lock();
+    BOOST_REQUIRE(shared_int_accessor.isValid());
+    BOOST_CHECK_EQUAL(42, *shared_int_accessor);
+
+    auto shared_int_accessor_2(std::move(shared_int_accessor));
+    BOOST_CHECK(!shared_int_accessor.isValid());
+    BOOST_REQUIRE(shared_int_accessor_2.isValid());
+    BOOST_CHECK_EQUAL(42, *shared_int_accessor_2);
+
+    shared_int_accessor = std::move(shared_int_accessor_2);
+    BOOST_CHECK(!shared_int_accessor_2.isValid());
+    BOOST_REQUIRE(shared_int_accessor.isValid());
+    BOOST_CHECK_EQUAL(42, *shared_int_accessor);
+}
+
+
+BOOST_AUTO_TEST_CASE(Acessor_move_assigment_self)
+{
+    SharedResource<int> shared_int(42);
+    auto shared_int_accessor = shared_int.lock();
+    BOOST_REQUIRE(shared_int_accessor.isValid());
+    BOOST_CHECK_EQUAL(42, *shared_int_accessor);
+
+    shared_int_accessor = std::move(shared_int_accessor);
+    BOOST_REQUIRE(shared_int_accessor.isValid());
+    BOOST_CHECK_EQUAL(42, *shared_int_accessor);
+}
+
+
+BOOST_AUTO_TEST_CASE(Acessor_release_on_assigment)
+{
+    SharedResource<int> shared_int_1(42);
+    SharedResource<int> shared_int_2(69);
+
+    auto shared_int_1_accessor = shared_int_1.lock();
+    auto some_shared_int_accessor = shared_int_2.lock();
+
+    some_shared_int_accessor = std::move(shared_int_1_accessor);
+    auto shared_int_2_accessor = shared_int_2.lock();
 }
