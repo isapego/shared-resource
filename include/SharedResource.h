@@ -74,14 +74,98 @@ public:
         T                              *m_shared_resource;
     };
 
+
+    class ConstAccessor
+    {
+        friend class SharedResource<T>;
+    public:
+        ~ConstAccessor() = default;
+
+        ConstAccessor(const ConstAccessor&) = delete;
+        ConstAccessor& operator=(const ConstAccessor&) = delete;
+
+        ConstAccessor(ConstAccessor&& a) :
+            m_lock(std::move(a.m_lock)),
+            m_shared_resource(a.m_shared_resource)
+        {
+            a.m_shared_resource = nullptr;
+        }
+
+        ConstAccessor(Accessor&& a) :
+            m_lock(std::move(a.m_lock)),
+            m_shared_resource(a.m_shared_resource)
+        {
+            a.m_shared_resource = nullptr;
+        }
+
+        ConstAccessor& operator=(ConstAccessor&& a)
+        {
+            if (&a != this)
+            {
+                m_lock = std::move(a.m_lock);
+                m_shared_resource = a.m_shared_resource;
+                a.m_shared_resource = nullptr;
+            }
+            return *this;
+        }
+
+        ConstAccessor& operator=(Accessor&& a)
+        {
+            if (&a != this)
+            {
+                m_lock = std::move(a.m_lock);
+                m_shared_resource = a.m_shared_resource;
+                a.m_shared_resource = nullptr;
+            }
+            return *this;
+        }
+
+        bool isValid() const noexcept
+        {
+            return m_shared_resource != nullptr;
+        }
+
+        const T* operator->() const
+        {
+            return m_shared_resource;
+        }
+
+        const T& operator*() const
+        {
+            return *m_shared_resource;
+        }
+
+        std::unique_lock<std::mutex>& get_lock() noexcept
+        {
+            return m_lock;
+        }
+
+    private:
+        ConstAccessor(const SharedResource<T> *resource) :
+            m_lock(resource->m_mutex),
+            m_shared_resource(&resource->m_resource)
+        {
+        }
+
+        std::unique_lock<std::mutex>    m_lock;
+        const T                        *m_shared_resource;
+    };
+
+
     Accessor lock()
     {
         return Accessor(this);
     }
 
+
+    ConstAccessor lockConst() const
+    {
+        return ConstAccessor(this);
+    }
+
 private:
-    T           m_resource;
-    std::mutex  m_mutex;
+    T                   m_resource;
+    mutable std::mutex  m_mutex;
 };
 
 #endif //SHARED_RESOURCE_H
