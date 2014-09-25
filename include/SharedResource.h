@@ -4,7 +4,7 @@
 #include <mutex>
 #include <condition_variable>
 
-template<typename T>
+template<typename T, typename Mutex = std::mutex>
 class SharedResource
 {
     class AccessorBase
@@ -41,7 +41,7 @@ class SharedResource
         }
 
     protected:
-        AccessorBase(const SharedResource<T> *resource) : m_lock(resource->m_mutex) { }
+        AccessorBase(const SharedResource<T, Mutex> *resource) : m_lock(resource->m_mutex) { }
         ~AccessorBase() = default;
 
         AccessorBase(AccessorBase&& a) : m_lock(std::move(a.m_lock)) { }
@@ -56,7 +56,7 @@ class SharedResource
         }
 
     private:
-        std::unique_lock<std::mutex> m_lock;
+        std::unique_lock<Mutex> m_lock;
     };
 
 public:
@@ -71,7 +71,7 @@ public:
 
     class Accessor : public AccessorBase
     {
-        friend class SharedResource<T>;
+        friend class SharedResource<T, Mutex>;
     public:
         ~Accessor() = default;
 
@@ -112,7 +112,7 @@ public:
         }
 
     private:
-        Accessor(SharedResource<T> *resource) :
+        Accessor(SharedResource<T, Mutex> *resource) :
             AccessorBase(resource),
             m_shared_resource(&resource->m_resource) { }
 
@@ -122,7 +122,7 @@ public:
 
     class ConstAccessor : public AccessorBase
     {
-        friend class SharedResource<T>;
+        friend class SharedResource<T, Mutex>;
     public:
         ~ConstAccessor() = default;
 
@@ -181,7 +181,7 @@ public:
         }
 
     private:
-        ConstAccessor(const SharedResource<T> *resource) :
+        ConstAccessor(const SharedResource<T, Mutex> *resource) :
             AccessorBase(resource),
             m_shared_resource(&resource->m_resource) { }
 
@@ -201,8 +201,8 @@ public:
     }
 
 private:
-    T                   m_resource;
-    mutable std::mutex  m_mutex;
+    T               m_resource;
+    mutable Mutex   m_mutex;
 };
 
 #endif //SHARED_RESOURCE_H

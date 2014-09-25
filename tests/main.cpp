@@ -455,3 +455,32 @@ BOOST_AUTO_TEST_CASE(ConstAccessor_condvars_pred_basic)
     BOOST_CHECK(wait_res);
 }
 
+
+BOOST_AUTO_TEST_CASE(SharedResource_with_recursive_mutex)
+{
+    SharedResource<int, std::recursive_mutex> shared_int(42);
+    auto shared_int_accessor_1 = shared_int.lock();
+    auto shared_int_accessor_2 = shared_int.lock();
+    auto shared_int_accessor_3 = shared_int.lock();
+}
+
+
+BOOST_AUTO_TEST_CASE(SharedResource_with_recursive_mutex_condvar_any)
+{
+    SharedResource<int, std::recursive_mutex> shared_int(42);
+    std::condition_variable_any condvar;
+
+    auto shared_int_accessor = shared_int.lockConst();
+    auto wait_res = shared_int_accessor.waitFor(condvar, std::chrono::milliseconds(50), []{ return false; });
+    BOOST_CHECK(!wait_res);
+    wait_res = shared_int_accessor.waitFor(condvar, std::chrono::milliseconds(50), []{ return true; });
+    BOOST_CHECK(wait_res);
+
+    wait_res = shared_int_accessor.waitUntil(condvar, std::chrono::steady_clock::now() +
+                                                      std::chrono::milliseconds(50), [] { return false; });
+    BOOST_CHECK(!wait_res);
+    wait_res = shared_int_accessor.waitUntil(condvar, std::chrono::steady_clock::now() +
+                                                      std::chrono::milliseconds(50), [] { return true; });
+    BOOST_CHECK(wait_res);
+}
+
