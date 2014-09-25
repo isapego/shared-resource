@@ -2,10 +2,63 @@
 #define SHARED_RESOURCE_H
 
 #include <mutex>
+#include <condition_variable>
 
-template<typename T>
+template<typename T, typename Mutex = std::mutex>
 class SharedResource
 {
+    class AccessorBase
+    {
+    public:
+        template<typename Cv, typename ...Args>
+        void wait(Cv& cv, Args&& ...args)
+        {
+            cv.wait(m_lock, std::forward<Args>(args)...);
+        }
+
+        template<typename Cv, typename Rep, typename Period>
+        std::cv_status waitFor(Cv& cv, const std::chrono::duration<Rep,Period>& rel_time)
+        {
+            return cv.wait_for(m_lock, rel_time);
+        }
+
+        template<typename Cv, typename Rep, typename Period, typename Predicate>
+        bool waitFor(Cv& cv, const std::chrono::duration<Rep,Period>& rel_time, Predicate pred)
+        {
+            return cv.wait_for(m_lock, rel_time, pred);
+        }
+
+        template<typename Cv, typename Clock, typename Duration>
+        std::cv_status waitUntil(Cv& cv, const std::chrono::time_point<Clock,Duration>& abs_time)
+        {
+            return cv.wait_until(m_lock, abs_time);
+        }
+
+        template<typename Cv, typename Clock, typename Duration, typename Predicate>
+        bool waitUntil(Cv& cv, const std::chrono::time_point<Clock,Duration>& abs_time, Predicate pred)
+        {
+            return cv.wait_until(m_lock, abs_time, pred);
+        }
+
+    protected:
+        AccessorBase(const SharedResource<T, Mutex> *resource) : m_lock(resource->m_mutex) { }
+        ~AccessorBase() = default;
+
+        AccessorBase(AccessorBase&& a) : m_lock(std::move(a.m_lock)) { }
+
+        AccessorBase& operator=(AccessorBase&& a)
+        {
+            if (&a != this)
+            {
+                m_lock = std::move(a.m_lock);
+            }
+            return *this;
+        }
+
+    private:
+        std::unique_lock<Mutex> m_lock;
+    };
+
 public:
     template<typename ...Args>
     SharedResource(Args&& ...args) : m_resource(std::forward<Args>(args)...) { }
@@ -16,19 +69,24 @@ public:
     SharedResource& operator=(SharedResource&&) = delete;
     SharedResource& operator=(const SharedResource&) = delete;
 
-    class Accessor
+    class Accessor : public AccessorBase
     {
-        friend class SharedResource<T>;
+        friend class SharedResource<T, Mutex>;
     public:
+<<<<<<< HEAD
         ~Accessor()
         {
             release();
         }
+=======
+        ~Accessor() = default;
+>>>>>>> condvars_support
 
         Accessor(const Accessor&) = delete;
         Accessor& operator=(const Accessor&) = delete;
 
         Accessor(Accessor&& a) :
+            AccessorBase(std::move(a)),
             m_shared_resource(a.m_shared_resource)
         {
             a.m_shared_resource = nullptr;
@@ -38,7 +96,11 @@ public:
         {
             if (&a != this)
             {
+<<<<<<< HEAD
                 release();
+=======
+                AccessorBase::operator=(std::move(a));
+>>>>>>> condvars_support
                 m_shared_resource = a.m_shared_resource;
                 a.m_shared_resource = nullptr;
             }
@@ -52,20 +114,74 @@ public:
 
         T* operator->()
         {
-            return &m_shared_resource->m_resource;
+            return m_shared_resource;
         }
 
         T& operator*()
         {
-            return m_shared_resource->m_resource;
+            return *m_shared_resource;
         }
 
     private:
-        Accessor(SharedResource<T> *resource) : m_shared_resource(resource)
+        Accessor(SharedResource<T, Mutex> *resource) :
+            AccessorBase(resource),
+            m_shared_resource(&resource->m_resource) { }
+
+        T   *m_shared_resource;
+    };
+
+
+    class ConstAccessor : public AccessorBase
+    {
+        friend class SharedResource<T, Mutex>;
+    public:
+        ~ConstAccessor() = default;
+
+        ConstAccessor(const ConstAccessor&) = delete;
+        ConstAccessor& operator=(const ConstAccessor&) = delete;
+
+        ConstAccessor(ConstAccessor&& a) :
+            AccessorBase(std::move(a)),
+            m_shared_resource(a.m_shared_resource)
         {
-            m_shared_resource->m_mutex.lock();
+            a.m_shared_resource = nullptr;
         }
 
+        ConstAccessor(Accessor&& a) :
+            AccessorBase(std::move(a)),
+            m_shared_resource(a.m_shared_resource)
+        {
+            a.m_shared_resource = nullptr;
+        }
+
+        ConstAccessor& operator=(ConstAccessor&& a)
+        {
+            if (&a != this)
+            {
+                AccessorBase::operator=(std::move(a));
+                m_shared_resource = a.m_shared_resource;
+                a.m_shared_resource = nullptr;
+            }
+            return *this;
+        }
+
+        ConstAccessor& operator=(Accessor&& a)
+        {
+            if (&a != this)
+            {
+                AccessorBase::operator=(std::move(a));
+                m_shared_resource = a.m_shared_resource;
+                a.m_shared_resource = nullptr;
+            }
+            return *this;
+        }
+
+        bool isValid() const noexcept
+        {
+            return m_shared_resource != nullptr;
+        }
+
+<<<<<<< HEAD
         void release()
         {
             if (m_shared_resource != nullptr)
@@ -156,6 +272,27 @@ public:
         const SharedResource<T> *m_shared_resource;
     };
 
+=======
+        const T* operator->() const
+        {
+            return m_shared_resource;
+        }
+
+        const T& operator*() const
+        {
+            return *m_shared_resource;
+        }
+
+    private:
+        ConstAccessor(const SharedResource<T, Mutex> *resource) :
+            AccessorBase(resource),
+            m_shared_resource(&resource->m_resource) { }
+
+        const T *m_shared_resource;
+    };
+
+
+>>>>>>> condvars_support
     Accessor lock()
     {
         return Accessor(this);
@@ -168,8 +305,13 @@ public:
     }
 
 private:
+<<<<<<< HEAD
     T                   m_resource;
     mutable std::mutex  m_mutex;
+=======
+    T               m_resource;
+    mutable Mutex   m_mutex;
+>>>>>>> condvars_support
 };
 
 #endif //SHARED_RESOURCE_H
