@@ -10,10 +10,34 @@ class SharedResource
     class AccessorBase
     {
     public:
-
-        std::unique_lock<std::mutex>& get_lock() noexcept
+        template<typename Cv, typename ...Args>
+        void wait(Cv& cv, Args&& ...args)
         {
-            return m_lock;
+            cv.wait(m_lock, std::forward<Args>(args)...);
+        }
+
+        template<typename Cv, typename Rep, typename Period>
+        std::cv_status waitFor(Cv& cv, const std::chrono::duration<Rep,Period>& rel_time)
+        {
+            return cv.wait_for(m_lock, rel_time);
+        }
+
+        template<typename Cv, typename Rep, typename Period, typename Predicate>
+        bool waitFor(Cv& cv, const std::chrono::duration<Rep,Period>& rel_time, Predicate pred)
+        {
+            return cv.wait_for(m_lock, rel_time, pred);
+        }
+
+        template<typename Cv, typename Clock, typename Duration>
+        std::cv_status waitUntil(Cv& cv, const std::chrono::time_point<Clock,Duration>& abs_time)
+        {
+            return cv.wait_until(m_lock, abs_time);
+        }
+
+        template<typename Cv, typename Clock, typename Duration, typename Predicate>
+        bool waitUntil(Cv& cv, const std::chrono::time_point<Clock,Duration>& abs_time, Predicate pred)
+        {
+            return cv.wait_until(m_lock, abs_time, pred);
         }
 
     protected:

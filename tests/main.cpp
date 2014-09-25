@@ -111,45 +111,6 @@ BOOST_AUTO_TEST_CASE(Concurrency_basic)
 }
 
 
-BOOST_AUTO_TEST_CASE(Concurrency_condvars)
-{
-    SharedResource<int> shared_int(0);
-    std::condition_variable condvar;
-
-    std::thread test_thread([&shared_int, &condvar]()
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(250));
-        auto shared_int_accessor = shared_int.lock();
-        *shared_int_accessor = 7;
-        condvar.wait(shared_int_accessor.get_lock());
-        *shared_int_accessor = 3;
-    });
-
-    {
-        auto shared_int_accessor = shared_int.lock();
-        BOOST_CHECK_EQUAL(0, *shared_int_accessor);
-        *shared_int_accessor = 5;
-        BOOST_CHECK_EQUAL(5, *shared_int_accessor);
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        BOOST_CHECK_EQUAL(5, *shared_int_accessor);
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(250));
-
-    {
-        auto shared_int_accessor = shared_int.lock();
-        BOOST_CHECK_EQUAL(7, *shared_int_accessor);
-        condvar.notify_one();
-        std::this_thread::sleep_for(std::chrono::milliseconds(250));
-        BOOST_CHECK_EQUAL(7, *shared_int_accessor);
-    }
-
-    test_thread.join();
-    auto shared_int_accessor = shared_int.lock();
-    BOOST_CHECK_EQUAL(3, *shared_int_accessor);
-}
-
-
 BOOST_AUTO_TEST_CASE(Acessor_move_construction)
 {
     SharedResource<int> shared_int(42);
@@ -384,3 +345,113 @@ BOOST_AUTO_TEST_CASE(ConstAccessor_construction_from_Accessor)
     BOOST_REQUIRE(shared_int_const_accessor.isValid());
     BOOST_CHECK_EQUAL(42, *shared_int_const_accessor);
 }
+
+
+BOOST_AUTO_TEST_CASE(Concurrency_condvars)
+{
+    SharedResource<int> shared_int(0);
+    std::condition_variable condvar;
+
+    std::thread test_thread([&shared_int, &condvar]()
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        auto shared_int_accessor = shared_int.lock();
+        *shared_int_accessor = 7;
+        shared_int_accessor.wait(condvar);
+        *shared_int_accessor = 3;
+    });
+
+    {
+        auto shared_int_accessor = shared_int.lock();
+        BOOST_CHECK_EQUAL(0, *shared_int_accessor);
+        *shared_int_accessor = 5;
+        BOOST_CHECK_EQUAL(5, *shared_int_accessor);
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        BOOST_CHECK_EQUAL(5, *shared_int_accessor);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+
+    {
+        auto shared_int_accessor = shared_int.lock();
+        BOOST_CHECK_EQUAL(7, *shared_int_accessor);
+        condvar.notify_one();
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        BOOST_CHECK_EQUAL(7, *shared_int_accessor);
+    }
+
+    test_thread.join();
+    auto shared_int_accessor = shared_int.lock();
+    BOOST_CHECK_EQUAL(3, *shared_int_accessor);
+}
+
+
+BOOST_AUTO_TEST_CASE(Accessor_condvars_basic)
+{
+    SharedResource<int> shared_int(42);
+    std::condition_variable condvar;
+
+    auto shared_int_accessor = shared_int.lock();
+    auto wait_res = shared_int_accessor.waitFor(condvar, std::chrono::milliseconds(50));
+    BOOST_CHECK(std::cv_status::timeout == wait_res);
+
+    wait_res = shared_int_accessor.waitUntil(condvar, std::chrono::steady_clock::now() +
+                                                      std::chrono::milliseconds(50));
+    BOOST_CHECK(std::cv_status::timeout == wait_res);
+}
+
+
+BOOST_AUTO_TEST_CASE(ConstAccessor_condvars_basic)
+{
+    SharedResource<int> shared_int(42);
+    std::condition_variable condvar;
+
+    auto shared_int_accessor = shared_int.lockConst();
+    auto wait_res = shared_int_accessor.waitFor(condvar, std::chrono::milliseconds(50));
+    BOOST_CHECK(std::cv_status::timeout == wait_res);
+
+    wait_res = shared_int_accessor.waitUntil(condvar, std::chrono::steady_clock::now() +
+                                                      std::chrono::milliseconds(50));
+    BOOST_CHECK(std::cv_status::timeout == wait_res);
+}
+
+
+BOOST_AUTO_TEST_CASE(Accessor_condvars_pred_basic)
+{
+    SharedResource<int> shared_int(42);
+    std::condition_variable condvar;
+
+    auto shared_int_accessor = shared_int.lock();
+    auto wait_res = shared_int_accessor.waitFor(condvar, std::chrono::milliseconds(50), []{ return false; });
+    BOOST_CHECK(!wait_res);
+    wait_res = shared_int_accessor.waitFor(condvar, std::chrono::milliseconds(50), []{ return true; });
+    BOOST_CHECK(wait_res);
+
+    wait_res = shared_int_accessor.waitUntil(condvar, std::chrono::steady_clock::now() +
+                                                      std::chrono::milliseconds(50), [] { return false; });
+    BOOST_CHECK(!wait_res);
+    wait_res = shared_int_accessor.waitUntil(condvar, std::chrono::steady_clock::now() +
+                                                      std::chrono::milliseconds(50), [] { return true; });
+    BOOST_CHECK(wait_res);
+}
+
+
+BOOST_AUTO_TEST_CASE(ConstAccessor_condvars_pred_basic)
+{
+    SharedResource<int> shared_int(42);
+    std::condition_variable condvar;
+
+    auto shared_int_accessor = shared_int.lockConst();
+    auto wait_res = shared_int_accessor.waitFor(condvar, std::chrono::milliseconds(50), []{ return false; });
+    BOOST_CHECK(!wait_res);
+    wait_res = shared_int_accessor.waitFor(condvar, std::chrono::milliseconds(50), []{ return true; });
+    BOOST_CHECK(wait_res);
+
+    wait_res = shared_int_accessor.waitUntil(condvar, std::chrono::steady_clock::now() +
+                                                      std::chrono::milliseconds(50), [] { return false; });
+    BOOST_CHECK(!wait_res);
+    wait_res = shared_int_accessor.waitUntil(condvar, std::chrono::steady_clock::now() +
+                                                      std::chrono::milliseconds(50), [] { return true; });
+    BOOST_CHECK(wait_res);
+}
+
