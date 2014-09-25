@@ -73,14 +73,7 @@ public:
     {
         friend class SharedResource<T, Mutex>;
     public:
-<<<<<<< HEAD
-        ~Accessor()
-        {
-            release();
-        }
-=======
         ~Accessor() = default;
->>>>>>> condvars_support
 
         Accessor(const Accessor&) = delete;
         Accessor& operator=(const Accessor&) = delete;
@@ -96,11 +89,7 @@ public:
         {
             if (&a != this)
             {
-<<<<<<< HEAD
-                release();
-=======
                 AccessorBase::operator=(std::move(a));
->>>>>>> condvars_support
                 m_shared_resource = a.m_shared_resource;
                 a.m_shared_resource = nullptr;
             }
@@ -181,98 +170,6 @@ public:
             return m_shared_resource != nullptr;
         }
 
-<<<<<<< HEAD
-        void release()
-        {
-            if (m_shared_resource != nullptr)
-            {
-                m_shared_resource->m_mutex.unlock();
-            }
-        }
-
-        SharedResource<T> *m_shared_resource;
-    };
-
-
-    class ConstAccessor
-    {
-        friend class SharedResource<T>;
-    public:
-        ~ConstAccessor()
-        {
-            release();
-        }
-
-        ConstAccessor(const ConstAccessor&) = delete;
-        ConstAccessor& operator=(const ConstAccessor&) = delete;
-
-        ConstAccessor(ConstAccessor&& a) :
-            m_shared_resource(a.m_shared_resource)
-        {
-            a.m_shared_resource = nullptr;
-        }
-
-        ConstAccessor(Accessor&& a) :
-            m_shared_resource(a.m_shared_resource)
-        {
-            a.m_shared_resource = nullptr;
-        }
-
-        ConstAccessor& operator=(ConstAccessor&& a)
-        {
-            if (&a != this)
-            {
-                release();
-                m_shared_resource = a.m_shared_resource;
-                a.m_shared_resource = nullptr;
-            }
-            return *this;
-        }
-
-        ConstAccessor& operator=(Accessor&& a)
-        {
-            if (&a != this)
-            {
-                release();
-                m_shared_resource = a.m_shared_resource;
-                a.m_shared_resource = nullptr;
-            }
-            return *this;
-        }
-
-        bool isValid() const noexcept
-        {
-            return m_shared_resource != nullptr;
-        }
-
-        const T* operator->()
-        {
-            return &m_shared_resource->m_resource;
-        }
-
-        const T& operator*()
-        {
-            return m_shared_resource->m_resource;
-        }
-
-    private:
-        ConstAccessor(const SharedResource<T> *resource) : m_shared_resource(resource)
-        {
-            m_shared_resource->m_mutex.lock();
-        }
-
-        void release() const
-        {
-            if (m_shared_resource != nullptr)
-            {
-                m_shared_resource->m_mutex.unlock();
-            }
-        }
-
-        const SharedResource<T> *m_shared_resource;
-    };
-
-=======
         const T* operator->() const
         {
             return m_shared_resource;
@@ -291,8 +188,6 @@ public:
         const T *m_shared_resource;
     };
 
-
->>>>>>> condvars_support
     Accessor lock()
     {
         return Accessor(this);
@@ -305,13 +200,8 @@ public:
     }
 
 private:
-<<<<<<< HEAD
-    T                   m_resource;
-    mutable std::mutex  m_mutex;
-=======
     T               m_resource;
     mutable Mutex   m_mutex;
->>>>>>> condvars_support
 };
 
 #endif //SHARED_RESOURCE_H

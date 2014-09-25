@@ -111,8 +111,6 @@ BOOST_AUTO_TEST_CASE(Concurrency_basic)
 }
 
 
-<<<<<<< HEAD
-=======
 BOOST_AUTO_TEST_CASE(Acessor_move_construction)
 {
     SharedResource<int> shared_int(42);
@@ -171,7 +169,6 @@ BOOST_AUTO_TEST_CASE(Acessor_release_on_assigment)
 }
 
 
->>>>>>> condvars_support
 BOOST_AUTO_TEST_CASE(Accessor_move_construction)
 {
     SharedResource<int> shared_int(42);
@@ -349,9 +346,6 @@ BOOST_AUTO_TEST_CASE(ConstAccessor_construction_from_Accessor)
     BOOST_CHECK_EQUAL(42, *shared_int_const_accessor);
 }
 
-<<<<<<< HEAD
-=======
-
 BOOST_AUTO_TEST_CASE(Concurrency_condvars)
 {
     SharedResource<int> shared_int(0);
@@ -489,4 +483,3 @@ BOOST_AUTO_TEST_CASE(SharedResource_with_recursive_mutex_condvar_any)
     BOOST_CHECK(wait_res);
 }
 
->>>>>>> condvars_support
